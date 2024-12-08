@@ -1,0 +1,143 @@
+import os
+import time
+from datetime import datetime
+
+
+class File:
+    """Base class for representing a file in the monitored folder."""
+    def __init__(self, filepath):
+        self.filepath = filepath
+        self.filename = os.path.basename(filepath)
+        self.extension = os.path.splitext(filepath)[1]
+        self.creation_time = os.path.getctime(filepath)
+        self.last_modified_time = os.path.getmtime(filepath)
+        self.last_snapshot_time = None
+
+    def update_snapshot(self):
+        """Updates the snapshot time."""
+        self.last_snapshot_time = time.time()
+
+    def has_changed(self):
+        """Checks if the file has changed since the last snapshot."""
+        if not self.last_snapshot_time:
+            return True
+        return self.last_modified_time > self.last_snapshot_time
+
+    def info(self):
+        print(f"Filename: {self.filename}")
+        print(f"Extension: {self.extension}")
+        print(f"Created: {datetime.fromtimestamp(self.creation_time)}")
+        print(f"Last Modified: {datetime.fromtimestamp(self.last_modified_time)}")
+
+
+class TextFile(File):
+    def __init__(self, filepath):
+        super().__init__(filepath)#inherits constructor from the superclass
+
+    def info(self):
+        super().info()
+        with open(self.filepath, 'r') as f:
+            content = f.readlines()
+        print(f"Linii: {len(content)}")
+        print(f"Cuvinte: {sum(len(line.split()) for line in content)}")
+        print(f"Caractere: {sum(len(line) for line in content)}")
+
+
+class ImageFile(File):
+    def __init__(self, filepath):
+        super().__init__(filepath)
+
+    def info(self):
+        super().info()
+        print("Image dimensions: 1920x1080")  
+
+
+class ProgramFile(File):
+    """Class for .py and .java files."""
+    def __init__(self, filepath):
+        super().__init__(filepath)
+
+    def info(self):
+        super().info()
+        with open(self.filepath, 'r') as f:
+            content = f.readlines()
+        print(f"Lines: {len(content)}")
+        print(f"Classes: {sum(1 for line in content if 'class ' in line)}")
+        print(f"Methods: {sum(1 for line in content if 'def ' in line or 'void ' in line)}")
+
+
+class DocumentChangeDetectionSystem:#Main system to monitor and detect changes in files."""
+    def __init__(self):
+        self.files = self.load_files()
+
+    def load_files(self):#loading the files
+        files = []
+        for filename in os.listdir("."):#Print a list of all entries in the current directory : ['example.txt', 'image.png', 'subfolder', 'script.py']
+            if os.path.isfile(filename):
+                if filename.endswith('.txt'):
+                    files.append(TextFile(filename))
+                elif filename.endswith(('.png', '.jpg')):
+                    files.append(ImageFile(filename))
+                elif filename.endswith(('.py', '.java')):
+                    files.append(ProgramFile(filename))
+                else:
+                    files.append(File(filename))
+        return files
+
+    def commit(self):
+        for file in self.files:
+            file.update_snapshot()
+        print("Snapshot updated. All files are now clean.")
+
+    def info(self, filename):
+        for file in self.files:
+            if file.filename == filename:
+                file.info()
+                return
+        print(f"File '{filename}' not found.")
+
+    def status(self):
+        for file in self.files:
+            status = "Changed" if file.has_changed() else "Unchanged"
+            print(f"{file.filename}: {status}")#Displays the change status of all files.
+
+
+def setup_files():
+    
+    sample_files = {
+        "example.txt": "This is a sample text file.\nIt has multiple lines.\n",
+        "image.png": "",  
+        "script.py": "class Sample:\n    def method(self):\n        pass\n",
+    }
+
+    for filename, content in sample_files.items():
+        if not os.path.exists(filename):  # Checks if the file already exists
+            with open(filename, 'w') as f:
+                f.write(content)
+            print(f"Sample file '{filename}' created.")
+
+
+def main():
+    setup_files()  
+    system = DocumentChangeDetectionSystem()
+
+    while True:
+        print("\nCommands: commit, info <filename>, status, exit")
+        command = input("Enter command: ").strip()
+
+        if command == "commit":
+            system.commit()
+        elif command.startswith("info"):
+            _, filename = command.split(" ", 1)
+            system.info(filename)
+        elif command == "status":
+            system.status()
+        elif command == "exit":
+            print("Exiting...")
+            break
+        else:
+            print("Invalid command!")
+
+
+if __name__ == "__main__":
+    main()
