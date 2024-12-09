@@ -1,0 +1,125 @@
+import os
+import time  
+from datetime import datetime
+class file:
+    def __init__(self,filepath):
+        self.filepath=filepath
+        self.filename=os.path.basename(filepath)
+        self.ext=os.path.splitext(filepath)[1]
+        self.creationtime=os.path.getctime(filepath)
+        self.last_modified_time=os.path.getmtime(filepath)
+        self.snapshot=None
+    def update(self):
+        self.snapshot=time.time()
+    def has_changed(self):
+        if not self.snapshot:
+            return True
+        return self.snapshot>self.last_modified_time
+    def info(self):
+        print(f"{self.filename}"," ",f"{self.ext}"," ",f"{datetime.fromtimestamp(self.creationtime)}"," ",f"{datetime.fromtimestamp(self.last_modified_time)}")
+class FileText(file):
+    def __init__(self,filepath):    
+        super().__init__(filepath)
+    def info(self):
+        super().info()
+        with open(self.filepath,'r') as f:
+            content=f.readlines()#Return all lines in the file, as a list where each line is an item in the list object
+        print(sum(len(line) for line in content))
+class ImgFile(file):
+    def __init__(self,filepath):
+        super().__init__(filepath)
+    def info(self):
+        super().info()
+        print("the dimension of this image file is 1090x1400px")
+class ProgramFile(file):
+    def __init__(self,filepath):
+        super().__init__(filepath)
+    def info(self):
+        super().info()
+        with open(self.filepath,'r') as f:
+            content=f.readlines()
+        print(sum(1 for line in content if "def" in line ))
+        print(sum(1 for line in content if "class" in line))
+class FileManager:
+    def __init__(self):
+        self.files=self.load_files()
+        self.snapshot_files = set(file.filename for file in self.files)
+
+    def load_files(self):
+        files=[]
+        for item in os.listdir("."):
+            if item.endswith('.txt'):
+                files.append(FileText(item))
+            elif item.endswith(('.png', '.jpg')):
+                files.append(ImgFile(item))
+            elif item.endswith(('.py', '.java')):
+                files.append(ProgramFile(item))
+            else:
+                files.append(File(item))
+        return files
+    def commit(self):
+        self.snapshot_files = set(file.filename for file in self.files)
+        for file in self.files:
+            file.update()
+        print("the files have been updated")
+    def detect_changes(self):
+        current_files = set(file.filename for file in self.files)
+        added_files = current_files - self.snapshot_files
+        deleted_files = self.snapshot_files - current_files
+
+        for filename in added_files:
+            print(f"{filename} is a new file.")
+        for filename in deleted_files:
+            print(f"{filename} was deleted since the last snapshot.")
+
+    def status(self):
+        for file in self.files:
+            status="changed" if file.has_changed() else "not changed"
+            print(f'the file {file.filename} has {status}')   
+    def info(self,filename):
+        for file in self.files:
+            if file.filename==filename:
+                file.info()
+                return
+        print(f"file {file.filename} not found")    
+def set_up_files(tobefiles):#a dictionary
+    for filename,content in tobefiles.items():
+        if not os.path.exists(filename):
+            with open(filename,'w') as f:
+                f.write(content)
+        print(f"Sample file '{filename}' created.")
+sample_files = {
+    "example.txt": "This is a sample text file.\nIt has multiple lines.\n",
+    "image.png": "",  
+    "script.py": "class Sample:\n    def method(self):\n        pass\n",
+}
+set_up_files(sample_files)
+system=FileManager()
+with open('example3.txt','w')as f:
+    f.write('hello1')
+system.files.append(FileText('example3.txt'))
+while True:
+    print("\nCommands: commit, info <filename>, status,detect changes, exit")
+    command = input("Enter command: ").strip()
+
+    if command == "commit":
+        system.commit()
+    elif command.startswith("info"):
+            _, filename = command.split(" ", 1)
+            system.info(filename)
+    elif command == "status":
+        system.status()
+    elif command=="detect changes":
+        system.detect_changes()
+    elif command == "exit":
+        print("Exiting...")
+        break
+    else:
+        print("Invalid command!")
+"Sample file 'example.txt' created.
+Sample file 'image.png' created.
+Sample file 'script.py' created.
+
+Commands: commit, info <filename>, status,detect changes, exit
+Enter command: detect changes
+example3.txt is a new file."
