@@ -16,7 +16,7 @@ class file:
             return True
         return self.snapshot>self.last_modified_time
     def info(self):
-        print(f"{self.filename}"," ",f"{self.ext}"," ",f"{self.creationtime}"," ",f"{self.last_modified_time}")
+        print(f"{self.filename}"," ",f"{self.ext}"," ",f"{datetime.fromtimestamp(self.creationtime)}"," ",f"{datetime.fromtimestamp(self.last_modified_time)}")
 class FileText(file):
     def __init__(self,filepath):    
         super().__init__(filepath)
@@ -24,13 +24,11 @@ class FileText(file):
         super().info()
         with open(self.filepath,'r') as f:
             content=f.readlines()#Return all lines in the file, as a list where each line is an item in the list object
-        print(f"Linii: {len(content)}")
-        print(f"Cuvinte: {sum(len(line.split()) for line in content)}")
-        print(f"Caractere: {sum(len(line) for line in content)}")
+        print(sum(len(line) for line in content))
 class ImgFile(file):
     def __init__(self,filepath):
         super().__init__(filepath)
-    def info():
+    def info(self):
         super().info()
         print("the dimension of this image file is 1090x1400px")
 class ProgramFile(file):
