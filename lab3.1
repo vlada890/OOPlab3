@@ -1,139 +1,103 @@
 import os
-import time
+import time  
 from datetime import datetime
-
-
-class File:# Base class for representing a file in the monitored folder.
-    def __init__(self, filepath):
-        self.filepath = filepath
-        self.filename = os.path.basename(filepath)
-        self.extension = os.path.splitext(filepath)[1]
-        self.creation_time = os.path.getctime(filepath)
-        self.last_modified_time = os.path.getmtime(filepath)
-        self.last_snapshot_time = None
-
-    def update_snapshot(self):# updates the snapshot time
-        self.last_snapshot_time = time.time()
-
-    def has_changed(self):# checks if the file has changed since the last snapshot
-        if not self.last_snapshot_time:
+class file:
+    def __init__(self,filepath):
+        self.filepath=filepath
+        self.filename=os.path.basename(filepath)
+        self.ext=os.path.splitext(filepath)[1]
+        self.creationtime=os.path.getctime(filepath)
+        self.last_modified_time=os.path.getmtime(filepath)
+        self.snapshot=None
+    def update(self):
+        self.snapshot=time.time()
+    def has_changed(self):
+        if not self.snapshot:
             return True
-        return self.last_modified_time > self.last_snapshot_time
-
+        return self.snapshot>self.last_modified_time
     def info(self):
-        print(f"Filename: {self.filename}")
-        print(f"Extension: {self.extension}")
-        print(f"Created: {datetime.fromtimestamp(self.creation_time)}")
-        print(f"Last Modified: {datetime.fromtimestamp(self.last_modified_time)}")
-
-
-class TextFile(File):
-    def __init__(self, filepath):
-        super().__init__(filepath) # inherits constructor from the superclass
-
+        print(f"{self.filename}"," ",f"{self.ext}"," ",f"{self.creationtime}"," ",f"{self.last_modified_time}")
+class FileText(file):
+    def __init__(self,filepath):    
+        super().__init__(filepath)
     def info(self):
         super().info()
-        with open(self.filepath, 'r') as f:
-            content = f.readlines()
+        with open(self.filepath,'r') as f:
+            content=f.readlines()#Return all lines in the file, as a list where each line is an item in the list object
         print(f"Linii: {len(content)}")
         print(f"Cuvinte: {sum(len(line.split()) for line in content)}")
         print(f"Caractere: {sum(len(line) for line in content)}")
-
-
-class ImageFile(File):
-    def __init__(self, filepath):
+class ImgFile(file):
+    def __init__(self,filepath):
         super().__init__(filepath)
-
+    def info():
+        super().info()
+        print("the dimension of this image file is 1090x1400px")
+class ProgramFile(file):
+    def __init__(self,filepath):
+        super().__init__(filepath)
     def info(self):
         super().info()
-        print("Image dimensions: 1920x1080")  
-
-
-class ProgramFile(File):# class for .py and .java files
-    def __init__(self, filepath):
-        super().__init__(filepath)
-
-    def info(self):
-        super().info()
-        with open(self.filepath, 'r') as f:
-            content = f.readlines()
-        print(f"Lines: {len(content)}")
-        print(f"Classes: {sum(1 for line in content if 'class ' in line)}")
-        print(f"Methods: {sum(1 for line in content if 'def ' in line or 'void ' in line)}")
-
-
-class DocumentChangeDetectionSystem:#main system to monitor and detect changes in files
+        with open(self.filepath,'r') as f:
+            content=f.readlines()
+        print(sum(1 for line in content if "def" in line ))
+        print(sum(1 for line in content if "class" in line))
+class FileManager:
     def __init__(self):
-        self.files = self.load_files()
-
-    def load_files(self):#loading the files
-        files = []
-        for filename in os.listdir("."):#print a list of all entries in the current directory : ['example.txt', 'image.png', 'subfolder', 'script.py']
-            if os.path.isfile(filename):
-                if filename.endswith('.txt'):
-                    files.append(TextFile(filename))
-                elif filename.endswith(('.png', '.jpg')):
-                    files.append(ImageFile(filename))
-                elif filename.endswith(('.py', '.java')):
-                    files.append(ProgramFile(filename))
-                else:
-                    files.append(File(filename))
+        self.files=self.load_files()
+    def load_files(self):
+        files=[]
+        for item in os.listdir("."):
+            if item.endswith('.txt'):
+                files.append(FileText(item))
+            elif item.endswith(('.png', '.jpg')):
+                files.append(ImgFile(item))
+            elif item.endswith(('.py', '.java')):
+                files.append(ProgramFile(item))
+            else:
+                files.append(File(item))
         return files
-
     def commit(self):
         for file in self.files:
-            file.update_snapshot()
-        print("Snapshot updated. All files are now clean.")
-
-    def info(self, filename):
-        for file in self.files:
-            if file.filename == filename:
-                file.info()
-                return
-        print(f"File '{filename}' not found.")
-
+            file.update()
+        print("the files have been updated")
     def status(self):
         for file in self.files:
-            status = "Changed" if file.has_changed() else "Unchanged"
-            print(f"{file.filename}: {status}")#displays the change status of all files
-
-
-def setup_files():
-    
-    sample_files = {
-        "example.txt": "This is a sample text file.\nIt has multiple lines.\n",
-        "image.png": "",  
-        "script.py": "class Sample:\n    def method(self):\n        pass\n",
-    }
-
-    for filename, content in sample_files.items():
-        if not os.path.exists(filename):  # checks if the file already exists
-            with open(filename, 'w') as f:
+            status="changed" if file.has_changed() else "not changed"
+            print(f'the file {file.filename} has {status}')   
+    def info(self,filename):
+        for file in self.files:
+            if file.filename==filename:
+                file.info()
+                return
+        print(f"file {file.filename} not found")    
+def set_up_files(tobefiles):#a dictionary
+    for filename,content in tobefiles.items():
+        if not os.path.exists(filename):
+            with open(filename,'w') as f:
                 f.write(content)
-            print(f"Sample file '{filename}' created.")
+        print(f"Sample file '{filename}' created.")
+sample_files = {
+    "example.txt": "This is a sample text file.\nIt has multiple lines.\n",
+    "image.png": "",  
+    "script.py": "class Sample:\n    def method(self):\n        pass\n",
+}
+set_up_files(sample_files)
+system=FileManager()
+while True:
+    print("\nCommands: commit, info <filename>, status, exit")
+    command = input("Enter command: ").strip()
 
-
-def main():
-    setup_files()  
-    system = DocumentChangeDetectionSystem()
-
-    while True:
-        print("\nCommands: commit, info <filename>, status, exit")
-        command = input("Enter command: ").strip()
-
-        if command == "commit":
-            system.commit()
-        elif command.startswith("info"):
+    if command == "commit":
+        system.commit()
+    elif command.startswith("info"):
             _, filename = command.split(" ", 1)
             system.info(filename)
-        elif command == "status":
-            system.status()
-        elif command == "exit":
-            print("Exiting...")
-            break
-        else:
-            print("Invalid command!")
-
-
-if __name__ == "__main__":
-    main()
+    elif command == "status":
+        system.status()
+    elif command == "exit":
+        print("Exiting...")
+        break
+    else:
+        print("Invalid command!")
+    
